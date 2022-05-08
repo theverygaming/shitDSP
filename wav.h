@@ -91,7 +91,7 @@ namespace dsp::wav {
             return headerValid;
         }
 
-        uint16_t getSamplerate() {
+        uint32_t getSamplerate() {
             return header.sampleRate;
         }
 
