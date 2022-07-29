@@ -142,10 +142,6 @@ namespace dsp
                 buffer = (std::complex<float> *)volk_malloc(size * sizeof(std::complex<float>), align);
                 std::fill(buffer, &buffer[size], 0);
 
-                // Start by reducing the interp and decim by their GCD
-                int gcd = std::gcd(interpolation, decimation);
-                d_interpolation /= gcd;
-                d_decimation /= gcd;
                 
                 // Filter number & tap number
                 nfilt = d_interpolation;
