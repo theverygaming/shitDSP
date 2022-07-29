@@ -17,7 +17,7 @@ namespace dsp::modulator {
             f1val = f1 / f0;
             vco.changeBaseFreq(f0, samplerate);
             symbolSamples = (1 / baudrate) * samplerate;
-            printf("dsp::modulator::r2FSKmodulator - actual baudrate: %f\n", (1 / (float)symbolSamples) * samplerate);
+            fprintf(stderr, "dsp::modulator::r2FSKmodulator - actual baudrate: %f\n", (1 / (float)symbolSamples) * samplerate);
         }
 
         ~r2FSKmodulator() {
@@ -58,7 +58,7 @@ namespace dsp::modulator {
 
         void changeParameters(float symrate, int samplerate, int maxInputCount) {
             symbolSamples = (1 / symrate) * samplerate;
-            printf("dsp::modulator::cQPSKmodulator - actual symbolrate: %f\n", (1 / (float)symbolSamples) * samplerate);
+            fprintf(stderr, "dsp::modulator::cQPSKmodulator - actual symbolrate: %f\n", (1 / (float)symbolSamples) * samplerate);
         }
 
         ~cQPSKmodulator() {
