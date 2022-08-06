@@ -52,11 +52,11 @@ namespace dsp::modulator {
 
     class cQPSKmodulator {
     public:
-        cQPSKmodulator(float symrate, int samplerate, int maxInputCount) {
-            changeParameters(symrate, samplerate, maxInputCount);
+        cQPSKmodulator(float symrate, int samplerate) {
+            changeParameters(symrate, samplerate);
         }
 
-        void changeParameters(float symrate, int samplerate, int maxInputCount) {
+        void changeParameters(float symrate, int samplerate) {
             symbolSamples = (1 / symrate) * samplerate;
             fprintf(stderr, "dsp::modulator::cQPSKmodulator - actual symbolrate: %f\n", (1 / (float)symbolSamples) * samplerate);
         }
@@ -111,13 +111,56 @@ namespace dsp::modulator {
         */
         int phases[4] = {45, 135, 225, 315};
         unsigned int lastPhaseIndex = 0;
+    };
 
-        uint32_t differentialDecoder_last = 0;
-        uint32_t differentialDecoder(uint32_t in) {
-            uint32_t decoded = (in - differentialDecoder_last) % 4;
-            differentialDecoder_last = in;
-            return decoded;
+    class rFSKvcogen {
+    public:
+        rFSKvcogen(float symrate, int samplerate) {
+            changeParameters(symrate, samplerate);
         }
 
+        void changeParameters(float symrate, int samplerate) {
+            symbolSamples = (1 / symrate) * samplerate;
+            fprintf(stderr, "dsp::modulator::rFSKvcogen - actual symbolrate: %f\n", (1 / (float)symbolSamples) * samplerate);
+        }
+
+        ~rFSKvcogen() {
+
+        }
+        
+        int calcOutSamples(int inCount) {
+            return (inCount * 8) * symbolSamples;
+        }
+
+        // Expects raw bytes on the input
+        void process(char* in, int inCount, float* out) {
+            int counterSamples = 0;
+            int a = 0;
+            for(int i = 0; i < inCount; i++) {
+                for(int j = 0; j < 8; j++) {
+
+                    // differential encoder
+                    unsigned int newIndex = ((unsigned int)getBit(in[i], j) + lastIndex) % 2;
+                    lastIndex = newIndex;
+
+                    float val = values[lastIndex];
+
+                    for(int k = 0; k < symbolSamples; k++) {
+                        out[counterSamples] = {val};
+                        counterSamples++;
+                    }
+                }
+            }
+        }
+
+    private:
+        unsigned int symbolSamples = 0;
+
+        unsigned char getBit(unsigned char in, int n) {
+            return (in >> (n)) & 0x1;
+        }
+
+        float values[2] = {-1, 1};
+        unsigned int lastIndex = 0;
     };
 }
