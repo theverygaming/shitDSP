@@ -1,21 +1,16 @@
 #pragma once
 #include "math.h"
 
-namespace dsp::vco
-{
-    class rvco
-    {
+namespace dsp::vco {
+    class rvco {
     public:
-        rvco() {
-        }
+        rvco() {}
 
         rvco(float basefreq, float samplerate) {
             speed = ((FL_M_PI * 2) * basefreq) / samplerate;
         }
 
-        ~rvco() {
-
-        }
+        ~rvco() {}
 
         void changeBaseFreq(float basefreq, float samplerate) {
             speed = ((FL_M_PI * 2) * basefreq) / samplerate;
@@ -29,6 +24,7 @@ namespace dsp::vco
                 phase += in * speed;
             }
         }
+
     private:
         float phase = 0;
         float speed;

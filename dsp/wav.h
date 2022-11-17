@@ -1,16 +1,18 @@
 #pragma once
-#include <fstream>
 #include <cstring>
+#include <fstream>
 
 namespace dsp::wav {
     class wavWriter {
-    // Epicly copied from https://github.com/AlexandreRouma/SDRPlusPlus/blob/master/misc_modules/recorder/src/wav.h
+        // Epicly copied from https://github.com/AlexandreRouma/SDRPlusPlus/blob/master/misc_modules/recorder/src/wav.h
     public:
         wavWriter(std::string path, uint16_t bitDepth, uint16_t channelCount, uint32_t sampleRate) {
             outstream = std::ofstream(path.c_str(), std::ios::binary);
             header.formatHeaderLength = 16;
             header.sampleType = 1;
-            if (bitDepth == 32) { header.sampleType = 3; } // 32-bit is usually float
+            if (bitDepth == 32) { // 32-bit is usually float
+                header.sampleType = 3;
+            }
             header.channelCount = channelCount;
             header.sampleRate = sampleRate;
             header.bytesPerSecond = sampleRate * channelCount * (bitDepth / 8);
@@ -20,7 +22,7 @@ namespace dsp::wav {
         }
 
         ~wavWriter() {
-            if(outstream.is_open()) {
+            if (outstream.is_open()) {
                 finish();
             }
         }
@@ -65,20 +67,22 @@ namespace dsp::wav {
     };
 
     class wavReader {
-    // https://github.com/AlexandreRouma/SDRPlusPlus/blob/master/source_modules/file_source/src/wavreader.h
+        // https://github.com/AlexandreRouma/SDRPlusPlus/blob/master/source_modules/file_source/src/wavreader.h
     public:
         wavReader(std::string path) {
             instream = std::ifstream(path.c_str(), std::ios::binary);
-            instream.seekg (0, instream.end);
+            instream.seekg(0, instream.end);
             size_t filesize = instream.tellg();
-            instream.seekg (0, instream.beg);
-            instream.read((char*)&header, sizeof(waveheader));
+            instream.seekg(0, instream.beg);
+            instream.read((char *)&header, sizeof(waveheader));
             actualSampleCount = (filesize - sizeof(waveheader)) / (header.bitDepth / 8);
-            if (memcmp(header.signature, "RIFF", 4) == 0 && memcmp(header.fileType, "WAVE", 4) == 0) { headerValid = true; }
+            if (memcmp(header.signature, "RIFF", 4) == 0 && memcmp(header.fileType, "WAVE", 4) == 0) {
+                headerValid = true;
+            }
         }
 
         ~wavReader() {
-            if(instream.is_open()) {
+            if (instream.is_open()) {
                 instream.close();
             }
         }
@@ -100,7 +104,7 @@ namespace dsp::wav {
         }
 
         uint32_t getHeaderSampleCount() {
-            return header.dataSize / header.bytesPerSample; 
+            return header.dataSize / header.bytesPerSample;
         }
 
         uint16_t getChannelCount() {
@@ -115,26 +119,26 @@ namespace dsp::wav {
             instream.seekg(sizeof(waveheader));
         }
 
-        void readRaw(void* data, size_t size) {
-            instream.read((char*)data, size);
+        void readRaw(void *data, size_t size) {
+            instream.read((char *)data, size);
         }
 
         void close() {
             instream.close();
         }
 
-        bool readFloat(float* samples, unsigned long samplecount) {
+        bool readFloat(float *samples, unsigned long samplecount) {
             // float
-            if(header.bitDepth == 32 && header.sampleType == 3) {
-                readRaw((void*)samples, samplecount * sizeof(float));
+            if (header.bitDepth == 32 && header.sampleType == 3) {
+                readRaw((void *)samples, samplecount * sizeof(float));
                 return true;
             }
 
             // 16-bit signed integer
-            if(header.bitDepth == 16 && header.sampleType == 1) {
-                int16_t* buffer = (int16_t*)malloc(samplecount * sizeof(int16_t));
-                readRaw((void*)buffer, samplecount * sizeof(int16_t));
-                for(unsigned long i = 0; i < samplecount; i++) {
+            if (header.bitDepth == 16 && header.sampleType == 1) {
+                int16_t *buffer = (int16_t *)malloc(samplecount * sizeof(int16_t));
+                readRaw((void *)buffer, samplecount * sizeof(int16_t));
+                for (unsigned long i = 0; i < samplecount; i++) {
                     samples[i] = buffer[i] / 32767.0f;
                 }
                 free(buffer);
@@ -142,6 +146,7 @@ namespace dsp::wav {
             }
             return false;
         }
+
     private:
         struct waveheader {
             char signature[4];
@@ -158,7 +163,7 @@ namespace dsp::wav {
             char dataMarker[4];
             uint32_t dataSize;
         };
-        
+
         std::ifstream instream;
         waveheader header;
         bool headerValid = false;

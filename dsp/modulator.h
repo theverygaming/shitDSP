@@ -1,8 +1,8 @@
 #pragma once
-#include <complex>
+#include "firfilters.h"
 #include "math.h"
 #include "vco.h"
-#include "firfilters.h"
+#include <complex>
 
 namespace dsp::modulator {
     class r2FSKmodulator {
@@ -20,33 +20,33 @@ namespace dsp::modulator {
             fprintf(stderr, "dsp::modulator::r2FSKmodulator - actual baudrate: %f\n", (1 / (float)symbolSamples) * samplerate);
         }
 
-        ~r2FSKmodulator() {
-        }
-        
+        ~r2FSKmodulator() {}
+
         int calcOutSamples(int inCount) {
             return (inCount * 8) * symbolSamples;
         }
 
         // Expects raw bytes on the input
-        void process(char* in, int inCount, float* out) {
-            for(int i = 0; i < inCount; i++) {
+        void process(char *in, int inCount, float *out) {
+            for (int i = 0; i < inCount; i++) {
                 sampleBuffer = &out[i * (8 * symbolSamples)];
-                for(int j = 0; j < 8; j++) {
+                for (int j = 0; j < 8; j++) {
                     float vcoVolt = 1;
-                    if((in[i] >> j) & 0x01) {
+                    if ((in[i] >> j) & 0x01) {
                         vcoVolt = f1val;
                     }
-                    for(int k = 0; k < symbolSamples; k++) {
+                    for (int k = 0; k < symbolSamples; k++) {
                         sampleBuffer[(j * symbolSamples) + k] = vcoVolt;
                     }
                 }
                 vco.process(sampleBuffer, sampleBuffer, symbolSamples * 8);
             }
         }
+
     private:
         dsp::vco::rvco vco;
         float f1val = 0;
-        float* sampleBuffer;
+        float *sampleBuffer;
         unsigned int symbolSamples = 0; // the output baudrate may change slightly depending on what baudrate-samplerate combination is chosen! _this should definitely be fixed later_
     };
 
@@ -61,25 +61,23 @@ namespace dsp::modulator {
             fprintf(stderr, "dsp::modulator::cQPSKmodulator - actual symbolrate: %f\n", (1 / (float)symbolSamples) * samplerate);
         }
 
-        ~cQPSKmodulator() {
+        ~cQPSKmodulator() {}
 
-        }
-        
         int calcOutSamples(int inCount) {
             return ((inCount * 8) / 2) * symbolSamples;
         }
 
         // Expects raw bytes on the input
-        void process(char* in, int inCount, std::complex<float>* out) {
+        void process(char *in, int inCount, std::complex<float> *out) {
             int counterSamples = 0;
             int a = 0;
-            for(int i = 0; i < inCount; i++) {
-                for(int j = 0; j < 4; j++) {
+            for (int i = 0; i < inCount; i++) {
+                for (int j = 0; j < 4; j++) {
 
                     // differential encoder
                     unsigned int newPhaseIndex = ((unsigned int)getBitPair(in[i], j) + lastPhaseIndex) % 4;
                     lastPhaseIndex = newPhaseIndex;
-                    
+
                     float PhaseShiftDeg = (float)phases[newPhaseIndex];
 
                     float PhaseShiftRadians = PhaseShiftDeg * (FL_M_PI / 180);
@@ -87,7 +85,7 @@ namespace dsp::modulator {
                     float reVal = cos(PhaseShiftRadians);
                     float imVal = sin(PhaseShiftRadians);
 
-                    for(int k = 0; k < symbolSamples; k++) {
+                    for (int k = 0; k < symbolSamples; k++) {
                         out[counterSamples] = {reVal, imVal};
                         counterSamples++;
                     }
@@ -108,7 +106,7 @@ namespace dsp::modulator {
          * +-------+-------+  +----+----+
          * | 225°  | 315°  |  | 00 | 10 |
          * +-------+-------+  +----+----+
-        */
+         */
         int phases[4] = {45, 135, 225, 315};
         unsigned int lastPhaseIndex = 0;
     };
@@ -124,20 +122,18 @@ namespace dsp::modulator {
             fprintf(stderr, "dsp::modulator::rFSKvcogen - actual symbolrate: %f\n", (1 / (float)symbolSamples) * samplerate);
         }
 
-        ~rFSKvcogen() {
+        ~rFSKvcogen() {}
 
-        }
-        
         int calcOutSamples(int inCount) {
             return (inCount * 8) * symbolSamples;
         }
 
         // Expects raw bytes on the input
-        void process(char* in, int inCount, float* out) {
+        void process(char *in, int inCount, float *out) {
             int counterSamples = 0;
             int a = 0;
-            for(int i = 0; i < inCount; i++) {
-                for(int j = 0; j < 8; j++) {
+            for (int i = 0; i < inCount; i++) {
+                for (int j = 0; j < 8; j++) {
 
                     // differential encoder
                     unsigned int newIndex = ((unsigned int)getBit(in[i], j) + lastIndex) % 2;
@@ -145,7 +141,7 @@ namespace dsp::modulator {
 
                     float val = values[lastIndex];
 
-                    for(int k = 0; k < symbolSamples; k++) {
+                    for (int k = 0; k < symbolSamples; k++) {
                         out[counterSamples] = {val};
                         counterSamples++;
                     }

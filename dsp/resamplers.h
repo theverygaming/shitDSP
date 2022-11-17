@@ -2,15 +2,11 @@
 #include "firfilters.h"
 #include <numeric>
 
-namespace dsp
-{
-    namespace resamplers
-    {
-        class realUpsampler
-        {
+namespace dsp {
+    namespace resamplers {
+        class realUpsampler {
         public:
-            realUpsampler(int multiplier, int chunkSize, int taps)
-            {
+            realUpsampler(int multiplier, int chunkSize, int taps) {
                 _multiplier = multiplier;
                 _chunkSize = chunkSize;
                 coeffs = (float *)malloc(taps * sizeof(float));
@@ -19,17 +15,14 @@ namespace dsp
                 processarr = (float *)malloc(chunkSize * _multiplier * sizeof(float));
             }
 
-            ~realUpsampler()
-            {
+            ~realUpsampler() {
                 free(coeffs);
                 free(processarr);
                 delete lpf;
             }
 
-            void upsample(int incount, float *in, float *out)
-            {
-                for (long int i = 0; i < incount; i++)
-                {
+            void upsample(int incount, float *in, float *out) {
+                for (long int i = 0; i < incount; i++) {
                     processarr[i * _multiplier] = in[i];
                 }
                 lpf->filter(processarr, out, incount * _multiplier);
@@ -42,11 +35,9 @@ namespace dsp
             int _multiplier;
             int _chunkSize;
         };
-        class complexUpsampler
-        {
+        class complexUpsampler {
         public:
-            complexUpsampler(int chunkSize, int multiplier, int taps)
-            {
+            complexUpsampler(int chunkSize, int multiplier, int taps) {
                 _chunkSize = chunkSize;
                 _multiplier = multiplier;
 
@@ -60,8 +51,7 @@ namespace dsp
                 upImag = new resamplers::realUpsampler(_multiplier, _chunkSize, taps);
             }
 
-            ~complexUpsampler()
-            {
+            ~complexUpsampler() {
                 free(realInArr);
                 free(imagInArr);
 
@@ -72,17 +62,14 @@ namespace dsp
                 delete upImag;
             }
 
-            void processSamples(std::complex<float> *in, std::complex<float> *out)
-            {
-                for (int i = 0; i < _chunkSize; i++)
-                {
+            void processSamples(std::complex<float> *in, std::complex<float> *out) {
+                for (int i = 0; i < _chunkSize; i++) {
                     realInArr[i] = in[i].real();
                     imagInArr[i] = in[i].imag();
                 }
                 upReal->upsample(_chunkSize, realInArr, realOutArr);
                 upImag->upsample(_chunkSize, imagInArr, imagOutArr);
-                for (int i = 0; i < _chunkSize * _multiplier; i++)
-                {
+                for (int i = 0; i < _chunkSize * _multiplier; i++) {
                     out[i] = {realOutArr[i], imagOutArr[i]};
                 }
             }
@@ -97,22 +84,16 @@ namespace dsp
             resamplers::realUpsampler *upReal;
             resamplers::realUpsampler *upImag;
         };
-        class realDownsampler
-        {
+        class realDownsampler {
         public:
-            realDownsampler(int divider)
-            {
+            realDownsampler(int divider) {
                 _divider = divider;
             }
 
-            ~realDownsampler()
-            {
-            }
+            ~realDownsampler() {}
 
-            void downsample(int incount, float *in, float *out)
-            {
-                for (int i = 0; i < incount; i += _divider)
-                {
+            void downsample(int incount, float *in, float *out) {
+                for (int i = 0; i < incount; i += _divider) {
                     out[i / _divider] = in[i];
                 }
             }
@@ -121,17 +102,17 @@ namespace dsp
             int _divider;
         };
 
-        class PSK_PulseShaping_CCRationalResamplerBlock // satdump copypasted 
+        class PSK_PulseShaping_CCRationalResamplerBlock // satdump copypasted
         {
-            public:
+        public:
             PSK_PulseShaping_CCRationalResamplerBlock(int tapcount, unsigned int interpolation, float alpha, int maxInputSamples) {
                 unsigned int decimation = 1;
                 d_interpolation = interpolation;
                 d_decimation = decimation;
 
                 tapcount |= 1; // make sure tapcount is odd
-                
-                float *tapsr = (float*)malloc(tapcount * sizeof(float));
+
+                float *tapsr = (float *)malloc(tapcount * sizeof(float));
                 filters::FIRcoeffcalc::root_raised_cosine(1, interpolation, decimation, alpha, tapcount, tapsr);
 
                 int align = volk_get_alignment();
@@ -142,7 +123,6 @@ namespace dsp
                 buffer = (std::complex<float> *)volk_malloc(size * sizeof(std::complex<float>), align);
                 std::fill(buffer, &buffer[size], 0);
 
-                
                 // Filter number & tap number
                 nfilt = d_interpolation;
                 ntaps = tapcount / nfilt;
@@ -153,8 +133,7 @@ namespace dsp
 
                 // Init tap buffers
                 taps = (float **)volk_malloc(nfilt * sizeof(float *), align);
-                for (int i = 0; i < nfilt; i++)
-                {
+                for (int i = 0; i < nfilt; i++) {
                     taps[i] = (float *)volk_malloc(ntaps * sizeof(float), align);
                     memset(taps[i], 0, ntaps);
                 }
@@ -162,8 +141,6 @@ namespace dsp
                 // Setup taps
                 for (int i = 0; i < tapcount; i++)
                     taps[i % nfilt][(ntaps - 1) - (i / nfilt)] = tapsr[i];
-
-
 
                 free(tapsr);
             }
@@ -180,13 +157,11 @@ namespace dsp
                 in_buffer = ntaps + nsamples;
 
                 int outc = 0;
-                for (int i = 0; i < in_buffer - ntaps;)
-                {
+                for (int i = 0; i < in_buffer - ntaps;) {
                     volk_32fc_32f_dot_prod_32fc((lv_32fc_t *)&output[outc++], (lv_32fc_t *)&buffer[i], taps[d_ctr], ntaps);
-                    
+
                     d_ctr += d_decimation;
-                    while (d_ctr >= d_interpolation)
-                    {
+                    while (d_ctr >= d_interpolation) {
                         d_ctr -= d_interpolation;
                         i++;
                     }
@@ -195,8 +170,7 @@ namespace dsp
                 memmove(&buffer[0], &buffer[in_buffer - ntaps], ntaps * sizeof(std::complex<float>));
             }
 
-            
-            private:
+        private:
             // Settings
             int d_interpolation;
             int d_decimation;
