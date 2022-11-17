@@ -9,14 +9,12 @@ namespace dsp {
             realUpsampler(int multiplier, int chunkSize, int taps) {
                 _multiplier = multiplier;
                 _chunkSize = chunkSize;
-                coeffs = (float *)malloc(taps * sizeof(float));
-                filters::FIRcoeffcalc::calcCoeffs(dsp::filters::FIRcoeffcalc::lowpass, coeffs, taps, 48000, 24000 * ((float)1 / multiplier));
-                lpf = new filters::FIRfilter(taps, coeffs, _chunkSize * multiplier);
+                std::vector<float> coeffs = filters::FIRcoeffcalc::calcCoeffs(dsp::filters::FIRcoeffcalc::lowpass, taps, 48000, 24000 * ((float)1 / multiplier));
+                lpf = new filters::FIRfilter(coeffs, _chunkSize * multiplier);
                 processarr = (float *)malloc(chunkSize * _multiplier * sizeof(float));
             }
 
             ~realUpsampler() {
-                free(coeffs);
                 free(processarr);
                 delete lpf;
             }
@@ -25,12 +23,11 @@ namespace dsp {
                 for (long int i = 0; i < incount; i++) {
                     processarr[i * _multiplier] = in[i];
                 }
-                lpf->filter(processarr, out, incount * _multiplier);
+                lpf->run(processarr, out, incount * _multiplier);
             }
 
         private:
             filters::FIRfilter *lpf;
-            float *coeffs;
             float *processarr;
             int _multiplier;
             int _chunkSize;

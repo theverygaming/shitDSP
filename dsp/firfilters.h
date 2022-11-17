@@ -2,6 +2,7 @@
 #include "math.h"
 #include "window.h"
 #include <string.h>
+#include <vector>
 #include <volk/volk.h>
 
 namespace dsp {
@@ -10,7 +11,9 @@ namespace dsp {
         public:
             enum filter_type { lowpass, highpass, bandpass, bandstop };
 
-            static void calcCoeffs(filter_type type, float *impulseresponse, int taps, int samplerate, float frequency) {
+            static std::vector<float> calcCoeffs(filter_type type, int taps, int samplerate, float frequency) {
+                std::vector<float> impulseresponse;
+                impulseresponse.resize(taps);
                 float sampletime = 1 / (float)samplerate;
                 for (int i = 0; i < taps; i++) {
                     int x = i - (taps / 2);
@@ -37,9 +40,12 @@ namespace dsp {
                     impulseresponse[i] /= frequency * 2;
                     impulseresponse[i] *= windowfunctions::blackman(i, taps - 1);
                 }
+                return impulseresponse;
             }
 
-            static void calcCoeffs_band(filter_type type, float *impulseresponse, int taps, int samplerate, float freq1, float freq2) {
+            static std::vector<float> calcCoeffs_band(filter_type type, int taps, int samplerate, float freq1, float freq2) {
+                std::vector<float> impulseresponse;
+                impulseresponse.resize(taps);
                 float sampletime = 1 / (float)samplerate;
                 for (int i = 0; i < taps; i++) {
                     int x = i - (taps / 2);
@@ -66,6 +72,7 @@ namespace dsp {
                     // impulseresponse[i] /= 2 * freq2 - 2 * freq1;
                     impulseresponse[i] *= windowfunctions::blackman(i, taps - 1);
                 }
+                return impulseresponse;
             }
 
             static void root_raised_cosine(double gain, double sampling_freq, double symbol_rate, double alpha, int ntaps, float *taps) // from SatDump
@@ -112,28 +119,26 @@ namespace dsp {
 
         class FIRfilter {
         public:
-            FIRfilter(int taps, float *coeffs, int chunkSize) {
-                _coeffs = coeffs;
+            FIRfilter(std::vector<float> taps, int chunkSize) {
                 _taps = taps;
-                buffer = (float *)malloc(chunkSize * 2 * sizeof(float));
-                bufferStart = &buffer[_taps];
+                buffer = (float *)malloc(((chunkSize * 2) + _taps.size()) * sizeof(float));
+                bufferStart = &buffer[_taps.size() - 1];
             }
 
             ~FIRfilter() {
                 free(buffer);
             }
 
-            void filter(float *in, float *out, long int count) {
+            void run(float *in, float *out, size_t count) {
                 memcpy(bufferStart, in, count * sizeof(float));
-                for (long int i = 0; i < count; i++) {
-                    volk_32f_x2_dot_prod_32f(&out[i], &buffer[i + 1], _coeffs, _taps);
+                for (size_t i = 0; i < count; i++) {
+                    volk_32f_x2_dot_prod_32f(&out[i], &buffer[i], _taps.data(), _taps.size());
                 }
-                memmove(buffer, &buffer[count], _taps * sizeof(float));
+                memmove(buffer, &buffer[count], (_taps.size() - 1) * sizeof(float));
             }
 
         private:
-            float *_coeffs;
-            int _taps;
+            std::vector<float> _taps;
             float *buffer;
             float *bufferStart;
         };
