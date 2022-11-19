@@ -6,7 +6,7 @@ namespace dsp {
     namespace resamplers {
         class realUpsampler {
         public:
-            realUpsampler(int multiplier, int chunkSize, int taps) {
+            realUpsampler(int chunkSize, int multiplier, int taps) {
                 _multiplier = multiplier;
                 _chunkSize = chunkSize;
                 std::vector<float> coeffs = filters::FIRcoeffcalc::calcCoeffs(dsp::filters::FIRcoeffcalc::lowpass, taps, 48000, 24000 * ((float)1 / multiplier));
