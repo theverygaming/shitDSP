@@ -35,11 +35,12 @@ namespace dsp {
                         break;
                     }
                 }
+
                 for (int i = 0; i < taps; i++) {
-                    // impulseresponse[i] *= sampletime;
                     impulseresponse[i] /= frequency * 2;
                     impulseresponse[i] *= windowfunctions::blackman(i, taps - 1);
                 }
+
                 return impulseresponse;
             }
 
@@ -67,9 +68,9 @@ namespace dsp {
                         break;
                     }
                 }
+
                 for (int i = 0; i < taps; i++) {
                     impulseresponse[i] *= sampletime;
-                    // impulseresponse[i] /= 2 * freq2 - 2 * freq1;
                     impulseresponse[i] *= windowfunctions::blackman(i, taps - 1);
                 }
                 return impulseresponse;
@@ -123,6 +124,7 @@ namespace dsp {
                 _taps = taps;
                 buffer = (float *)malloc(((chunkSize * 2) + _taps.size()) * sizeof(float));
                 bufferStart = &buffer[_taps.size() - 1];
+                memset(buffer, 0, ((chunkSize * 2) + _taps.size()) * sizeof(float));
             }
 
             ~FIRfilter() {
